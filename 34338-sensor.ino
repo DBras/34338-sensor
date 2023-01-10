@@ -1,27 +1,27 @@
 #include <ESP8266WiFi.h>
 #include <ThingSpeak.h>
+#include <LiquidCrystal_I2C.h>
 
 //WiFi connection
-const char* ssid = "OnePlus 8T"; 
-const char* pass = "z4ukjf8y";
+const char* ssid = "InderNettet"; 
+const char* pass = "#ByensBedsteKager";
 WiFiClient client;
 
-//ThingSpeak connection
+//ThingSpeak connection parameters
 unsigned long channelID = 2004080;
 const char* APIKey = "JXCGVXICZ9YBRNLT";
 const char* server = "api.thingspeak.com";
 
-//Definere tidsintervaler
+// Define time intervals
 const long intervalLCD = 100;
 const long intervalRead = 20000;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
- 
 
-#include <LiquidCrystal_I2C.h>
+// Initiate display
 LiquidCrystal_I2C lcd(0x27,16,2);
 
-//Button toggle setup
+// Button toggle setup
 int ButtonToggle = 0;
 int ButtonIndex=0;
 
@@ -36,9 +36,13 @@ void setup() {
   //Button D6
   pinMode(D6, INPUT_PULLUP);
 
-  // initialize the lcd
+  // Initialize the lcd
   lcd.init();
   lcd.backlight();
+  
+  // Initialize WiFi & ThingSpeak connections
+  WiFi.begin(ssid, pass);
+  ThingSpeak.begin(client);
 }
 
 void loop() {
@@ -60,7 +64,17 @@ void loop() {
 
   //ThingSpeak read
   if(curr-prevRead>=intervalRead){
-    prevRead = curr;        
+    prevRead = curr;   
+
+    // Read the first field, print if successful
+    long temperature = ThingSpeak.readLongField(channelID, 1, APIKey);
+    int statusCode = ThingSpeak.getLastReadStatus();
+    if (statusCode == 200) {
+      Serial.println(temperature);
+    } else {
+      Serial.print("An error occurred: ");
+      Serial.println(statusCode);
+    }
 
   }
 
