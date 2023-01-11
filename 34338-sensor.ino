@@ -2,12 +2,18 @@
 #include <ThingSpeak.h>
 #include <LiquidCrystal_I2C.h>
 
-//WiFi connection
-const char* ssid = "InderNettet"; 
-const char* pass = "#ByensBedsteKager";
+const byte R_PIN = D4;
+const byte G_PIN = D3;
+const byte B_PIN = D0;
+const byte A_PIN = A0;
+const byte BUTTON_PIN = D6;
+
+// WiFi connection
+const char* ssid = ""; 
+const char* pass = "";
 WiFiClient client;
 
-//ThingSpeak connection parameters
+// ThingSpeak connection parameters
 unsigned long channelID = 2004080;
 const char* APIKey = "JXCGVXICZ9YBRNLT";
 const char* server = "api.thingspeak.com";
@@ -27,14 +33,14 @@ int ButtonIndex=0;
 
 void setup() {
   Serial.begin(115200);
-  //LED pins: R=D4, G=D3, B=D0
-  pinMode(D0, OUTPUT);
-  pinMode(D3, OUTPUT);
-  pinMode(D4, OUTPUT);
-  //Potentiometer analog A0
-  pinMode(A0, INPUT);
-  //Button D6
-  pinMode(D6, INPUT_PULLUP);
+  // LED pins
+  pinMode(B_PIN, OUTPUT);
+  pinMode(G_PIN, OUTPUT);
+  pinMode(R_PIN, OUTPUT);
+  // Potentiometer analog pin
+  pinMode(A_PIN, INPUT);
+  // Button pin
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   // Initialize the lcd
   lcd.init();
@@ -50,11 +56,11 @@ void loop() {
   unsigned long curr = millis();
   
   //Button
-  if(digitalRead(D6) == false){
+  if(digitalRead(BUTTON_PIN) == false){
     if(ButtonIndex == 0){
       ButtonToggle++;
       ButtonToggle = ButtonToggle%2;
-      digitalWrite(D4,!digitalRead(D4));
+      digitalWrite(R_PIN,!digitalRead(R_PIN));
       ButtonIndex = 1;
     }
   }
@@ -81,17 +87,17 @@ void loop() {
   //LCD Write
   if(curr-prevLCD>=intervalLCD){
     prevLCD=curr;
-    if(analogRead(A0)<=400){
+    if(analogRead(A_PIN)<=400){
       lcd.setCursor(0,1);
       lcd.print("LOW ");
-      digitalWrite(D0, HIGH);
-      digitalWrite(D3, LOW);
+      digitalWrite(B_PIN, HIGH);
+      digitalWrite(G_PIN, LOW);
     }
     else{
       lcd.setCursor(0,1);
       lcd.print("HIGH");
-      digitalWrite(D3, HIGH);
-      digitalWrite(D0, LOW);
+      digitalWrite(G_PIN, HIGH);
+      digitalWrite(B_PIN, LOW);
     }
     lcd.setCursor(0,0);
     lcd.print("Act");
