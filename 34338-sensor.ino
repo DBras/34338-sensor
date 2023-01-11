@@ -21,15 +21,16 @@ const char* server = "api.thingspeak.com";
 // Define time intervals
 const long intervalLCD = 100;
 const long intervalRead = 20000;
+const long intervalButton = 1000;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
+unsigned long prevButton = 0;
 
 // Initiate display
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 // Button toggle setup
-int ButtonToggle = 0;
-int ButtonIndex=0;
+bool buttonToggle = false;
 
 // Potentiometer variables
 int prevAnalogRead, currAnalogRead;
@@ -56,20 +57,15 @@ void setup() {
 }
 
 void loop() {
-  //Time tracking
+  // Time tracking
   unsigned long curr = millis();
   
-  //Button
-  if(digitalRead(BUTTON_PIN) == false){
-    if(ButtonIndex == 0){
-      ButtonToggle++;
-      ButtonToggle = ButtonToggle%2;
-      digitalWrite(R_PIN,!digitalRead(R_PIN));
-      ButtonIndex = 1;
-    }
-  }
-  else{
-    ButtonIndex = 0;
+  // Toggle button & red LED
+  if(digitalRead(BUTTON_PIN) == false
+      && prevButton - curr >= intervalButton){
+    buttonToggle = !buttonToggle;
+    prevButton = curr;
+    digitalWrite(B_PIN, !digitalRead(B_PIN));
   }
 
   //ThingSpeak read
@@ -81,6 +77,11 @@ void loop() {
     int statusCode = ThingSpeak.getLastReadStatus();
     if (statusCode == 200) {
       Serial.println(temperature);
+      if (temperature >= temperatureThreshold) {
+        digitalWrite(R_PIN, HIGH);
+      } else {
+        digitalWrite(R_PIN, LOW);
+      }
     } else {
       Serial.print("An error occurred: ");
       Serial.println(statusCode);
@@ -93,26 +94,26 @@ void loop() {
     prevLCD=curr;
     currAnalogRead = analogRead(A_PIN);
 
+    // Detect change in potentiometer
     if (prevAnalogRead - currAnalogRead < -20
         || prevAnalogRead - currAnalogRead > 20) {
-      temperatureThreshold = 20 + (currAnalogRead / 100);
-      Serial.println(temperatureThreshold);
       prevAnalogRead = currAnalogRead;
+      // Change temp or noise threshold depending on button toggle
+      if (buttonToggle) {
+        // Print new threshold to serial and LCD
+        temperatureThreshold = 20.0 + (currAnalogRead / 100);
+        Serial.println(temperatureThreshold);
+        lcd.setCursor(0,0);
+        lcd.print("Temp");
+        lcd.setCursor(0,1);
+        lcd.print(temperatureThreshold);
+      } else {
+        Serial.println("Changing sound limit");
+        lcd.setCursor(0,0);
+        lcd.print("Hum ");
+        lcd.setCursor(0,1);
+        lcd.print(65);
+      }
     }
-
-    if(analogRead(A_PIN)<=400){
-      lcd.setCursor(0,1);
-      lcd.print("LOW ");
-      digitalWrite(B_PIN, HIGH);
-      digitalWrite(G_PIN, LOW);
-    }
-    else{
-      lcd.setCursor(0,1);
-      lcd.print("HIGH");
-      digitalWrite(G_PIN, HIGH);
-      digitalWrite(B_PIN, LOW);
-    }
-    lcd.setCursor(0,0);
-    lcd.print("Act");
   }
 }
