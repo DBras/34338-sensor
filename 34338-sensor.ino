@@ -9,8 +9,8 @@ const byte A_PIN = A0;
 const byte BUTTON_PIN = D6;
 
 // WiFi connection
-const char* ssid = ""; 
-const char* pass = "";
+const char* ssid = "P7"; 
+const char* pass = "dtuiot!!";
 WiFiClient client;
 
 // ThingSpeak connection parameters
@@ -30,6 +30,10 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 // Button toggle setup
 int ButtonToggle = 0;
 int ButtonIndex=0;
+
+// Potentiometer variables
+int prevAnalogRead, currAnalogRead;
+int temperatureThreshold = 25;
 
 void setup() {
   Serial.begin(115200);
@@ -87,6 +91,15 @@ void loop() {
   //LCD Write
   if(curr-prevLCD>=intervalLCD){
     prevLCD=curr;
+    currAnalogRead = analogRead(A_PIN);
+
+    if (prevAnalogRead - currAnalogRead < -20
+        || prevAnalogRead - currAnalogRead > 20) {
+      temperatureThreshold = 20 + (currAnalogRead / 100);
+      Serial.println(temperatureThreshold);
+      prevAnalogRead = currAnalogRead;
+    }
+
     if(analogRead(A_PIN)<=400){
       lcd.setCursor(0,1);
       lcd.print("LOW ");
