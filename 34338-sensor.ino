@@ -3,11 +3,11 @@
 #include <LiquidCrystal_I2C.h>
 #include <espnow.h>
 
-const byte R_PIN = D4;
-const byte G_PIN = D3;
-const byte B_PIN = D0;
-const byte A_PIN = A0;
-const byte BUTTON_PIN = D6;
+#define R_PIN D4
+#define G_PIN D3
+#define B_PIN D0
+#define A_PIN A0
+#define BUTTON_PIN D6
 
 // Incoming message structure
 typedef struct struct_message {
@@ -37,11 +37,14 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 // Button toggle setup
 bool buttonToggle = false;
 
-// Potentiometer variables
+// Limiter variables
 int prevAnalogRead, currAnalogRead;
-int temperatureThreshold = 25;
+float temperatureThreshold = 25;
+float noiseThreshold = 63;
 
+// Function to run when data is received
 void onDataRec(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
+  // Copy to structure, print data
   memcpy(&receivedData, incomingData, sizeof(receivedData));
   Serial.print("Temp: ");
   Serial.println(receivedData.temperature);
@@ -50,6 +53,7 @@ void onDataRec(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
   Serial.print("Noise: ");
   Serial.println(receivedData.noiseLevel);
 
+  // React if levels are too high
   if (receivedData.temperature >= temperatureThreshold) {
     digitalWrite(R_PIN, HIGH);
   } else {
@@ -72,7 +76,7 @@ void setup() {
   lcd.init();
   lcd.backlight();
   
-  // Initialize WiFi & ThingSpeak connections
+  // Initialize WiFi / ESPNow
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != 0) {
     Serial.println("Error initializing ESP-NOW");
@@ -86,7 +90,7 @@ void loop() {
   // Time tracking
   unsigned long curr = millis();
   
-  // Toggle button & red LED
+  // Toggle button & blue LED
   if(digitalRead(BUTTON_PIN) == false
       && prevButton - curr >= intervalButton){
     buttonToggle = !buttonToggle;
@@ -94,6 +98,7 @@ void loop() {
     digitalWrite(B_PIN, !digitalRead(B_PIN));
   }
 
+  // Update display and set new thresholds
   if (curr-prevLCD >= intervalLCD) {
     prevLCD=curr;
     currAnalogRead = analogRead(A_PIN);
@@ -105,18 +110,21 @@ void loop() {
       // Change temp or noise threshold depending on button toggle
       if (buttonToggle) {
         // Print new threshold to serial and LCD
+        // Division by 100 to get range of 10
         temperatureThreshold = 20.0 + (currAnalogRead / 100);
         Serial.println(temperatureThreshold);
         lcd.setCursor(0,0);
-        lcd.print("Temp");
+        lcd.print("Temp ");
         lcd.setCursor(0,1);
         lcd.print(temperatureThreshold);
       } else {
-        Serial.println("Changing sound limit");
+        // Division by 50 to get range of 20
+        noiseThreshold = 63.0 + (currAnalogRead / 50);
+        Serial.println(noiseThreshold);
         lcd.setCursor(0,0);
-        lcd.print("Hum ");
+        lcd.print("Noise");
         lcd.setCursor(0,1);
-        lcd.print(65);
+        lcd.print(noiseThreshold);
       }
     } 
   }
