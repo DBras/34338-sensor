@@ -1,1 +1,4 @@
 # IoT Project
+
+Daniel ESP MAC: 84:F3:EB:31:D0:74
+ESP32 MAC: 24:0A:C4:97:4F:08

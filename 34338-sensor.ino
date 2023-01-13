@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <ThingSpeak.h>
 #include <LiquidCrystal_I2C.h>
+#include <espnow.h>
 
 const byte R_PIN = D4;
 const byte G_PIN = D3;
@@ -8,10 +9,14 @@ const byte B_PIN = D0;
 const byte A_PIN = A0;
 const byte BUTTON_PIN = D6;
 
-// WiFi connection
-const char* ssid = "P7"; 
-const char* pass = "dtuiot!!";
-WiFiClient client;
+// Incoming message structure
+typedef struct struct_message {
+    float temperature;
+    float humidity;
+    float noiseLevel;
+} struct_message;
+
+struct_message receivedData;
 
 // ThingSpeak connection parameters
 unsigned long channelID = 2004080;
@@ -36,6 +41,22 @@ bool buttonToggle = false;
 int prevAnalogRead, currAnalogRead;
 int temperatureThreshold = 25;
 
+void onDataRec(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
+  memcpy(&receivedData, incomingData, sizeof(receivedData));
+  Serial.print("Temp: ");
+  Serial.println(receivedData.temperature);
+  Serial.print("Hum: ");
+  Serial.println(receivedData.humidity);
+  Serial.print("Noise: ");
+  Serial.println(receivedData.noiseLevel);
+
+  if (receivedData.temperature >= temperatureThreshold) {
+    digitalWrite(R_PIN, HIGH);
+  } else {
+    digitalWrite(R_PIN, LOW);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   // LED pins
@@ -52,8 +73,13 @@ void setup() {
   lcd.backlight();
   
   // Initialize WiFi & ThingSpeak connections
-  WiFi.begin(ssid, pass);
-  ThingSpeak.begin(client);
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != 0) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
+  esp_now_register_recv_cb(onDataRec);
 }
 
 void loop() {
@@ -68,29 +94,7 @@ void loop() {
     digitalWrite(B_PIN, !digitalRead(B_PIN));
   }
 
-  //ThingSpeak read
-  if(curr-prevRead>=intervalRead){
-    prevRead = curr;   
-
-    // Read the first field, print if successful
-    long temperature = ThingSpeak.readLongField(channelID, 1, APIKey);
-    int statusCode = ThingSpeak.getLastReadStatus();
-    if (statusCode == 200) {
-      Serial.println(temperature);
-      if (temperature >= temperatureThreshold) {
-        digitalWrite(R_PIN, HIGH);
-      } else {
-        digitalWrite(R_PIN, LOW);
-      }
-    } else {
-      Serial.print("An error occurred: ");
-      Serial.println(statusCode);
-    }
-
-  }
-
-  //LCD Write
-  if(curr-prevLCD>=intervalLCD){
+  if (curr-prevLCD >= intervalLCD) {
     prevLCD=curr;
     currAnalogRead = analogRead(A_PIN);
 
@@ -114,6 +118,10 @@ void loop() {
         lcd.setCursor(0,1);
         lcd.print(65);
       }
-    }
+    } 
   }
 }
+
+
+
+
