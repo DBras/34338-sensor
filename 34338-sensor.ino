@@ -10,13 +10,18 @@
 #define BUTTON_PIN D6
 
 // Incoming message structure
+uint8_t broadcastAddress[] = { 0x84, 0xF3, 0xEB, 0x31, 0x2E, 0x16 };
 typedef struct struct_message {
     float temperature;
     float humidity;
     float noiseLevel;
 } struct_message;
-
+// Outgoing message structure
+typedef struct sent_struct_message {
+  bool turnOn;
+} sent_struct_message;
 struct_message receivedData;
+sent_struct_message sentData;
 
 // ThingSpeak & WiFi connection parameters
 unsigned long channelID = 2004080;
@@ -31,13 +36,13 @@ const long intervalButton = 100;
 unsigned long prevButton = 0;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
-bool allowButton = true;
 
 // Initiate display
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 // Button toggle setup
 bool buttonToggle = false;
+bool allowButton = true;
 
 // Limiter variables
 int prevAnalogRead, currAnalogRead;
@@ -46,6 +51,16 @@ float noiseThreshold = 63;
 
 // Ready to write to ThingSpeak
 bool readyToWrite = false;
+
+void onDataSent(uint8_t * mac_addr, uint8_t sendStatus) {
+  // Print status of last packet
+  Serial.print("Last Packet Send Status: ");
+  if (sendStatus == 0) {
+    Serial.println("Delivery success");
+  } else {
+    Serial.println("Delivery fail");
+  }
+}
 
 // Function to run when data is received
 void onDataRec(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
@@ -84,7 +99,7 @@ void setup() {
   lcd.init();
   lcd.backlight();
   
-  // Initialize WiFi / ESPNow
+  // Initialize WiFi
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin(ssid, pass);
   while (WiFi.status() != WL_CONNECTED) {
@@ -93,12 +108,17 @@ void setup() {
   }
   Serial.print("WiFi channel: ");
   Serial.println(WiFi.channel());
+  // Initialize ESPNow
   if (esp_now_init() != 0) {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-  esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
+  esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+  esp_now_register_send_cb(onDataSent);
+  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
   esp_now_register_recv_cb(onDataRec);
+
+  // Begin ThingSpeak
   ThingSpeak.begin(client);
 }
 
