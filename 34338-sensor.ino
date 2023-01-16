@@ -12,9 +12,9 @@
 // Incoming message structure
 uint8_t broadcastAddress[] = { 0x84, 0xF3, 0xEB, 0x31, 0x2E, 0x16 };
 typedef struct struct_message {
-    float temperature;
-    float humidity;
-    float noiseLevel;
+  float temperature;
+  float humidity;
+  float noiseLevel;
 } struct_message;
 // Outgoing message structure
 typedef struct sent_struct_message {
@@ -41,7 +41,7 @@ unsigned long prevRead = 0;
 unsigned long analogChange = 0;
 
 // Initiate display
-LiquidCrystal_I2C lcd(0x27,16,2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // Button toggle setup
 bool buttonToggle = false;
@@ -57,7 +57,7 @@ float noiseThreshold = 63;
 // Ready to write to ThingSpeak
 bool readyToWrite = false;
 
-void onDataSent(uint8_t * mac_addr, uint8_t sendStatus) {
+void onDataSent(uint8_t* mac_addr, uint8_t sendStatus) {
   // Print status of last packet
   Serial.print("Last Packet Send Status: ");
   if (sendStatus == 0) {
@@ -68,7 +68,7 @@ void onDataSent(uint8_t * mac_addr, uint8_t sendStatus) {
 }
 
 // Function to run when data is received
-void onDataRec(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
+void onDataRec(uint8_t* mac, uint8_t* incomingData, uint8_t len) {
   // Copy to structure, print data
   memcpy(&receivedData, incomingData, sizeof(receivedData));
   Serial.print("Temp: ");
@@ -103,7 +103,7 @@ void setup() {
   // Initialize the lcd
   lcd.init();
   lcd.backlight();
-  
+
   // Initialize WiFi
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin(ssid, pass);
@@ -139,39 +139,37 @@ void loop() {
     ThingSpeak.writeFields(channelID, APIKey);
     readyToWrite = false;
   }
-  
+
   // Toggle button & blue LED
-  if(digitalRead(TOGGLE_BUTTON_PIN) == false){
-    if(allowToggleButton == true){
+  if (digitalRead(TOGGLE_BUTTON_PIN) == false) {
+    if (allowToggleButton == true) {
       buttonToggle = !buttonToggle;
       allowToggleButton = false;
       digitalWrite(B_PIN, !digitalRead(B_PIN));
     }
     prevToggleButton = curr;
-  }
-  else if(curr-prevToggleButton >= intervalButton) {
+  } else if (curr - prevToggleButton >= intervalButton) {
     allowToggleButton = true;
   }
 
   // Toggle mobile
-  if(digitalRead(MOBILE_BUTTON_PIN) == false){
-    if(allowMobileButton == true){
+  if (digitalRead(MOBILE_BUTTON_PIN) == false) {
+    if (allowMobileButton == true) {
       mobileButtonToggle = !mobileButtonToggle;
       sentData.turnOn = mobileButtonToggle;
       Serial.print("Mobile status: ");
       Serial.println(mobileButtonToggle);
-      esp_now_send(broadcastAddress, (uint8_t*)&sentData, sizeof(sentData));    
+      esp_now_send(broadcastAddress, (uint8_t*)&sentData, sizeof(sentData));
       allowMobileButton = false;
     }
     prevMobileButton = curr;
-  }
-  else if(curr-prevMobileButton >= intervalButton) {
+  } else if (curr - prevMobileButton >= intervalButton) {
     allowMobileButton = true;
   }
 
   // Update display and set new thresholds
-  if (curr-prevLCD >= intervalLCD) {
-    prevLCD=curr;
+  if (curr - prevLCD >= intervalLCD) {
+    prevLCD = curr;
     currAnalogRead = analogRead(A_PIN);
 
     // Detect change in potentiometer
@@ -185,38 +183,33 @@ void loop() {
         // Division by 100 to get range of 10
         temperatureThreshold = 20.0 + (currAnalogRead / 100);
         Serial.println(temperatureThreshold);
-        lcd.setCursor(0,0);
-        lcd.print("TempLevel   ");
-        lcd.setCursor(0,1);
+        lcd.setCursor(0, 0);
+        lcd.print("Temp Threshold: ");
+        lcd.setCursor(0, 1);
         lcd.print(temperatureThreshold);
       } else {
         // Division by 50 to get range of 20
         noiseThreshold = 63.0 + (currAnalogRead / 50);
         Serial.println(noiseThreshold);
-        lcd.setCursor(0,0);
-        lcd.print("NoiseLevel  ");
-        lcd.setCursor(0,1);
+        lcd.setCursor(0, 0);
+        lcd.print("Noise Threshold:");
+        lcd.setCursor(0, 1);
         lcd.print(noiseThreshold);
       }
     }
     // Display current readings on display
-    else if(curr - analogChange >= intervalChange){
-      if (buttonToggle){
-        lcd.setCursor(0,0);
-        lcd.print("CurrentTemp ");
-        lcd.setCursor(0,1);
+    else if (curr - analogChange >= intervalChange) {
+      if (buttonToggle) {
+        lcd.setCursor(0, 0);
+        lcd.print("Current Temp:   ");
+        lcd.setCursor(0, 1);
         lcd.print(receivedData.temperature);
-      }
-      else{
-        lcd.setCursor(0,0);
-        lcd.print("CurrentNoise");
-        lcd.setCursor(0,1);
+      } else {
+        lcd.setCursor(0, 0);
+        lcd.print("Current Noise:  ");
+        lcd.setCursor(0, 1);
         lcd.print(receivedData.noiseLevel);
       }
-    } 
+    }
   }
 }
-
-
-
-
