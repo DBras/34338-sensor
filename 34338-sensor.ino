@@ -186,7 +186,7 @@ void loop() {
         temperatureThreshold = 20.0 + (currAnalogRead / 100);
         Serial.println(temperatureThreshold);
         lcd.setCursor(0,0);
-        lcd.print("Temp ");
+        lcd.print("TempLevel   ");
         lcd.setCursor(0,1);
         lcd.print(temperatureThreshold);
       } else {
@@ -194,7 +194,7 @@ void loop() {
         noiseThreshold = 63.0 + (currAnalogRead / 50);
         Serial.println(noiseThreshold);
         lcd.setCursor(0,0);
-        lcd.print("Noise");
+        lcd.print("NoiseLevel  ");
         lcd.setCursor(0,1);
         lcd.print(noiseThreshold);
       }
@@ -203,13 +203,13 @@ void loop() {
     else if(curr - analogChange >= intervalChange){
       if (buttonToggle){
         lcd.setCursor(0,0);
-        lcd.print("Temp ");
+        lcd.print("CurrentTemp ");
         lcd.setCursor(0,1);
         lcd.print(receivedData.temperature);
       }
       else{
         lcd.setCursor(0,0);
-        lcd.print("Noise");
+        lcd.print("CurrentNoise");
         lcd.setCursor(0,1);
         lcd.print(receivedData.noiseLevel);
       }
