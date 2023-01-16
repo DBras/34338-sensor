@@ -33,9 +33,11 @@ WiFiClient client;
 // Define time intervals
 const long intervalLCD = 100;
 const long intervalButton = 100;
+const long intervalChange = 5000;
 unsigned long prevButton = 0;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
+unsigned long analogChange = 0;
 
 // Initiate display
 LiquidCrystal_I2C lcd(0x27,16,2);
@@ -157,6 +159,7 @@ void loop() {
     if (prevAnalogRead - currAnalogRead < -20
         || prevAnalogRead - currAnalogRead > 20) {
       prevAnalogRead = currAnalogRead;
+      analogChange = curr;
       // Change temp or noise threshold depending on button toggle
       if (buttonToggle) {
         // Print new threshold to serial and LCD
@@ -175,6 +178,20 @@ void loop() {
         lcd.print("Noise");
         lcd.setCursor(0,1);
         lcd.print(noiseThreshold);
+      }
+    }
+    else if(curr - analogChange >= intervalChange){
+      if (buttonToggle){
+        lcd.setCursor(0,0);
+        lcd.print("Temp ");
+        lcd.setCursor(0,1);
+        lcd.print(receivedData.temperature);
+      }
+      else{
+        lcd.setCursor(0,0);
+        lcd.print("Noise");
+        lcd.setCursor(0,1);
+        lcd.print(receivedData.noiseLevel);
       }
     } 
   }
