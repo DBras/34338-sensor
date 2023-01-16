@@ -116,7 +116,7 @@ void loop() {
   
   // Toggle button & blue LED
   if(digitalRead(BUTTON_PIN) == false
-      && prevButton - curr >= intervalButton){
+      && curr - prevButton >= intervalButton){
     buttonToggle = !buttonToggle;
     prevButton = curr;
     digitalWrite(B_PIN, !digitalRead(B_PIN));
