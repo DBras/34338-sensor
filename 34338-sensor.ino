@@ -4,10 +4,10 @@
 #include <espnow.h>
 
 #define R_PIN D4
-#define G_PIN D3
 #define B_PIN D0
 #define A_PIN A0
-#define BUTTON_PIN D6
+#define TOGGLE_BUTTON_PIN D6
+#define MOBILE_BUTTON_PIN D3
 
 // Incoming message structure
 uint8_t broadcastAddress[] = { 0x84, 0xF3, 0xEB, 0x31, 0x2E, 0x16 };
@@ -34,7 +34,8 @@ WiFiClient client;
 const long intervalLCD = 100;
 const long intervalButton = 100;
 const long intervalChange = 5000;
-unsigned long prevButton = 0;
+unsigned long prevToggleButton = 0;
+unsigned long prevMobileButton = 0;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
 unsigned long analogChange = 0;
@@ -44,7 +45,9 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 
 // Button toggle setup
 bool buttonToggle = false;
-bool allowButton = true;
+bool mobileButtonToggle = false;
+bool allowToggleButton = true;
+bool allowMobileButton = true;
 
 // Limiter variables
 int prevAnalogRead, currAnalogRead;
@@ -90,12 +93,12 @@ void setup() {
   Serial.begin(115200);
   // LED pins
   pinMode(B_PIN, OUTPUT);
-  pinMode(G_PIN, OUTPUT);
   pinMode(R_PIN, OUTPUT);
   // Potentiometer analog pin
   pinMode(A_PIN, INPUT);
   // Button pin
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(TOGGLE_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(MOBILE_BUTTON_PIN, INPUT_PULLUP);
 
   // Initialize the lcd
   lcd.init();
@@ -138,16 +141,32 @@ void loop() {
   }
   
   // Toggle button & blue LED
-  if(digitalRead(BUTTON_PIN) == false){
-    if(allowButton == true){
+  if(digitalRead(TOGGLE_BUTTON_PIN) == false){
+    if(allowToggleButton == true){
       buttonToggle = !buttonToggle;
-      allowButton = false;
+      allowToggleButton = false;
       digitalWrite(B_PIN, !digitalRead(B_PIN));
     }
-    prevButton = curr;
+    prevToggleButton = curr;
   }
-  else if(curr-prevButton >= intervalButton) {
-    allowButton = true;
+  else if(curr-prevToggleButton >= intervalButton) {
+    allowToggleButton = true;
+  }
+
+  // Toggle mobile
+  if(digitalRead(MOBILE_BUTTON_PIN) == false){
+    if(allowMobileButton == true){
+      mobileButtonToggle = !mobileButtonToggle;
+      sentData.turnOn = mobileButtonToggle;
+      Serial.print("Mobile status: ");
+      Serial.println(mobileButtonToggle);
+      esp_now_send(broadcastAddress, (uint8_t*)&sentData, sizeof(sentData));    
+      allowMobileButton = false;
+    }
+    prevMobileButton = curr;
+  }
+  else if(curr-prevMobileButton >= intervalButton) {
+    allowMobileButton = true;
   }
 
   // Update display and set new thresholds
@@ -180,6 +199,7 @@ void loop() {
         lcd.print(noiseThreshold);
       }
     }
+    // Display current readings on display
     else if(curr - analogChange >= intervalChange){
       if (buttonToggle){
         lcd.setCursor(0,0);
