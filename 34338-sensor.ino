@@ -30,7 +30,7 @@ const long intervalLCD = 100;
 const long intervalButton = 1000;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
-unsigned long prevButton = 0;
+bool prevButton = false;
 
 // Initiate display
 LiquidCrystal_I2C lcd(0x27,16,2);
@@ -115,11 +115,15 @@ void loop() {
   }
   
   // Toggle button & blue LED
-  if(digitalRead(BUTTON_PIN) == false
-      && curr - prevButton >= intervalButton){
-    buttonToggle = !buttonToggle;
-    prevButton = curr;
-    digitalWrite(B_PIN, !digitalRead(B_PIN));
+  if(digitalRead(BUTTON_PIN) == false){
+    if(prevButton == false){
+      buttonToggle = !buttonToggle;
+      prevButton = true;
+      digitalWrite(B_PIN, !digitalRead(B_PIN));
+    }
+  }
+  else {
+    prevButton = false;
   }
 
   // Update display and set new thresholds
