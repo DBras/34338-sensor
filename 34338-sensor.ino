@@ -27,10 +27,11 @@ WiFiClient client;
 
 // Define time intervals
 const long intervalLCD = 100;
-const long intervalButton = 1000;
+const long intervalButton = 100;
+unsigned long prevButton = 0;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
-bool prevButton = false;
+bool allowButton = true;
 
 // Initiate display
 LiquidCrystal_I2C lcd(0x27,16,2);
@@ -116,14 +117,15 @@ void loop() {
   
   // Toggle button & blue LED
   if(digitalRead(BUTTON_PIN) == false){
-    if(prevButton == false){
+    if(allowButton == true){
       buttonToggle = !buttonToggle;
-      prevButton = true;
+      allowButton = false;
       digitalWrite(B_PIN, !digitalRead(B_PIN));
     }
+    prevButton = curr;
   }
-  else {
-    prevButton = false;
+  else if(curr-prevButton >= intervalButton) {
+    allowButton = true;
   }
 
   // Update display and set new thresholds
