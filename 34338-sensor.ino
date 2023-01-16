@@ -33,7 +33,7 @@ WiFiClient client;
 // Define time intervals
 const long intervalLCD = 100;
 const long intervalButton = 100;
-const long intervalChange = 5000;
+const long intervalChange = 3000;
 unsigned long prevToggleButton = 0;
 unsigned long prevMobileButton = 0;
 unsigned long prevLCD = 0;
@@ -160,6 +160,15 @@ void loop() {
       Serial.print("Mobile status: ");
       Serial.println(mobileButtonToggle);
       esp_now_send(broadcastAddress, (uint8_t*)&sentData, sizeof(sentData));
+      lcd.setCursor(0, 0);
+      if (mobileButtonToggle) {
+        lcd.print("Mobile on       ");
+      } else {
+        lcd.print("Mobile off      ");
+      }
+      lcd.setCursor(0, 1);
+      lcd.print("                ");
+      analogChange = curr;
       allowMobileButton = false;
     }
     prevMobileButton = curr;
@@ -184,7 +193,7 @@ void loop() {
         temperatureThreshold = 20.0 + (currAnalogRead / 100);
         Serial.println(temperatureThreshold);
         lcd.setCursor(0, 0);
-        lcd.print("Temp Threshold: ");
+        lcd.print("Temp Threshold  ");
         lcd.setCursor(0, 1);
         lcd.print(temperatureThreshold);
       } else {
@@ -192,7 +201,7 @@ void loop() {
         noiseThreshold = 63.0 + (currAnalogRead / 50);
         Serial.println(noiseThreshold);
         lcd.setCursor(0, 0);
-        lcd.print("Noise Threshold:");
+        lcd.print("Noise Threshold ");
         lcd.setCursor(0, 1);
         lcd.print(noiseThreshold);
       }
@@ -201,12 +210,12 @@ void loop() {
     else if (curr - analogChange >= intervalChange) {
       if (buttonToggle) {
         lcd.setCursor(0, 0);
-        lcd.print("Current Temp:   ");
+        lcd.print("Current Temp    ");
         lcd.setCursor(0, 1);
         lcd.print(receivedData.temperature);
       } else {
         lcd.setCursor(0, 0);
-        lcd.print("Current Noise:  ");
+        lcd.print("Current Noise   ");
         lcd.setCursor(0, 1);
         lcd.print(receivedData.noiseLevel);
       }
