@@ -18,14 +18,15 @@ typedef struct struct_message {
 
 struct_message receivedData;
 
-// ThingSpeak connection parameters
+// ThingSpeak & WiFi connection parameters
 unsigned long channelID = 2004080;
-const char* APIKey = "JXCGVXICZ9YBRNLT";
-const char* server = "api.thingspeak.com";
+const char* APIKey = "A5HP1PM53222TH9M";
+const char* ssid = "P7";
+const char* pass = "dtuiot!!";
+WiFiClient client;
 
 // Define time intervals
 const long intervalLCD = 100;
-const long intervalRead = 20000;
 const long intervalButton = 1000;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
@@ -41,6 +42,9 @@ bool buttonToggle = false;
 int prevAnalogRead, currAnalogRead;
 float temperatureThreshold = 25;
 float noiseThreshold = 63;
+
+// Ready to write to ThingSpeak
+bool readyToWrite = false;
 
 // Function to run when data is received
 void onDataRec(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
@@ -59,6 +63,9 @@ void onDataRec(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
   } else {
     digitalWrite(R_PIN, LOW);
   }
+
+  // Flag ready to write to ThingSpeak
+  readyToWrite = true;
 }
 
 void setup() {
@@ -77,18 +84,35 @@ void setup() {
   lcd.backlight();
   
   // Initialize WiFi / ESPNow
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.begin(ssid, pass);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.print("WiFi channel: ");
+  Serial.println(WiFi.channel());
   if (esp_now_init() != 0) {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
   esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
   esp_now_register_recv_cb(onDataRec);
+  ThingSpeak.begin(client);
 }
 
 void loop() {
   // Time tracking
   unsigned long curr = millis();
+
+  // Write to ThingSpeak if data is ready
+  if (readyToWrite) {
+    ThingSpeak.setField(1, receivedData.temperature);
+    ThingSpeak.setField(2, receivedData.humidity);
+    ThingSpeak.setField(3, receivedData.noiseLevel);
+    ThingSpeak.writeFields(channelID, APIKey);
+    readyToWrite = false;
+  }
   
   // Toggle button & blue LED
   if(digitalRead(BUTTON_PIN) == false
