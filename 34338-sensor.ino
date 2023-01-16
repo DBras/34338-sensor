@@ -6,6 +6,7 @@
 #define R_PIN D4
 #define B_PIN D0
 #define A_PIN A0
+#define BUZZER_PIN D7
 #define TOGGLE_BUTTON_PIN D6
 #define MOBILE_BUTTON_PIN D3
 
@@ -34,11 +35,14 @@ WiFiClient client;
 const long intervalLCD = 100;
 const long intervalButton = 100;
 const long intervalChange = 3000;
+const long buzzerTimer = 1000;
+unsigned long curr;
 unsigned long prevToggleButton = 0;
 unsigned long prevMobileButton = 0;
 unsigned long prevLCD = 0;
 unsigned long prevRead = 0;
 unsigned long analogChange = 0;
+unsigned long buzzerStartTime = 0;
 
 // Initiate display
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -56,6 +60,9 @@ float noiseThreshold = 63;
 
 // Ready to write to ThingSpeak
 bool readyToWrite = false;
+
+// Buzzer initialization
+bool buzz = false;
 
 void onDataSent(uint8_t* mac_addr, uint8_t sendStatus) {
   // Print status of last packet
@@ -85,6 +92,13 @@ void onDataRec(uint8_t* mac, uint8_t* incomingData, uint8_t len) {
     digitalWrite(R_PIN, LOW);
   }
 
+  if (receivedData.noiseLevel >= noiseThreshold) {
+    buzz = true;
+    buzzerStartTime = curr;
+  } else {
+    buzz = false;
+  }
+
   // Flag ready to write to ThingSpeak
   readyToWrite = true;
 }
@@ -99,6 +113,8 @@ void setup() {
   // Button pin
   pinMode(TOGGLE_BUTTON_PIN, INPUT_PULLUP);
   pinMode(MOBILE_BUTTON_PIN, INPUT_PULLUP);
+  // Buzzer pin
+  pinMode(BUZZER_PIN, OUTPUT);
 
   // Initialize the lcd
   lcd.init();
@@ -129,15 +145,15 @@ void setup() {
 
 void loop() {
   // Time tracking
-  unsigned long curr = millis();
+  curr = millis();
 
-  // Write to ThingSpeak if data is ready
-  if (readyToWrite) {
-    ThingSpeak.setField(1, receivedData.temperature);
-    ThingSpeak.setField(2, receivedData.humidity);
-    ThingSpeak.setField(3, receivedData.noiseLevel);
-    ThingSpeak.writeFields(channelID, APIKey);
-    readyToWrite = false;
+  if (buzz) {
+    if (curr - buzzerStartTime <= buzzerTimer) {
+      digitalWrite(BUZZER_PIN, HIGH);
+    } else {
+      buzz = false;
+      digitalWrite(BUZZER_PIN, LOW);
+    }
   }
 
   // Toggle button & blue LED
@@ -155,19 +171,21 @@ void loop() {
   // Toggle mobile
   if (digitalRead(MOBILE_BUTTON_PIN) == false) {
     if (allowMobileButton == true) {
+      // Toggle and send to other ESP
       mobileButtonToggle = !mobileButtonToggle;
       sentData.turnOn = mobileButtonToggle;
       Serial.print("Mobile status: ");
       Serial.println(mobileButtonToggle);
       esp_now_send(broadcastAddress, (uint8_t*)&sentData, sizeof(sentData));
+      // Write to LCD
       lcd.setCursor(0, 0);
       if (mobileButtonToggle) {
-        lcd.print("Mobile on       ");
+        lcd.print("Mobile on      ");
       } else {
-        lcd.print("Mobile off      ");
+        lcd.print("Mobile off     ");
       }
       lcd.setCursor(0, 1);
-      lcd.print("                ");
+      lcd.print("               ");
       analogChange = curr;
       allowMobileButton = false;
     }
@@ -220,5 +238,14 @@ void loop() {
         lcd.print(receivedData.noiseLevel);
       }
     }
+  }
+
+  // Write to ThingSpeak if data is ready
+  if (readyToWrite) {
+    ThingSpeak.setField(1, receivedData.temperature);
+    ThingSpeak.setField(2, receivedData.humidity);
+    ThingSpeak.setField(3, receivedData.noiseLevel);
+    ThingSpeak.writeFields(channelID, APIKey);
+    readyToWrite = false;
   }
 }
