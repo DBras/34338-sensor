@@ -36,7 +36,7 @@ const long intervalLCD = 100;
 const long intervalButton = 100;
 const long intervalChange = 3000;
 const long buzzerTimer = 1000;
-unsigned long curr;
+unsigned long currentTime;
 unsigned long prevToggleButton = 0;
 unsigned long prevMobileButton = 0;
 unsigned long prevLCD = 0;
@@ -54,7 +54,7 @@ bool allowToggleButton = true;
 bool allowMobileButton = true;
 
 // Limiter variables
-int prevAnalogRead, currAnalogRead;
+int prevAnalogRead, currentAnalogRead;
 float temperatureThreshold = 25;
 float noiseThreshold = 63;
 
@@ -63,6 +63,21 @@ bool readyToWrite = false;
 
 // Buzzer initialization
 bool buzz = false;
+
+//Write to LCD with float
+void writeLCD(String topLine, float bottomLine){
+  lcd.setCursor(0, 1);
+  if (bottomLine) {
+    lcd.print(bottomLine);
+  } else {
+    lcd.clear();
+  }
+  lcd.setCursor(0, 0);
+  for (int i = topLine.length(); i <= 16; i++) {
+    topLine += " ";
+  }
+  lcd.print(topLine);
+}
 
 void onDataSent(uint8_t* mac_addr, uint8_t sendStatus) {
   // Print status of last packet
@@ -91,10 +106,11 @@ void onDataRec(uint8_t* mac, uint8_t* incomingData, uint8_t len) {
   } else {
     digitalWrite(R_PIN, LOW);
   }
-
+  
+  //Buzzer for an amount of time
   if (receivedData.noiseLevel >= noiseThreshold) {
     buzz = true;
-    buzzerStartTime = curr;
+    buzzerStartTime = currentTime;
   } else {
     buzz = false;
   }
@@ -145,10 +161,10 @@ void setup() {
 
 void loop() {
   // Time tracking
-  curr = millis();
+  currentTime = millis();
 
   if (buzz) {
-    if (curr - buzzerStartTime <= buzzerTimer) {
+    if (currentTime - buzzerStartTime <= buzzerTimer) {
       digitalWrite(BUZZER_PIN, HIGH);
     } else {
       buzz = false;
@@ -163,8 +179,8 @@ void loop() {
       allowToggleButton = false;
       digitalWrite(B_PIN, !digitalRead(B_PIN));
     }
-    prevToggleButton = curr;
-  } else if (curr - prevToggleButton >= intervalButton) {
+    prevToggleButton = currentTime;
+  } else if (currentTime - prevToggleButton >= intervalButton) {
     allowToggleButton = true;
   }
 
@@ -178,64 +194,49 @@ void loop() {
       Serial.println(mobileButtonToggle);
       esp_now_send(broadcastAddress, (uint8_t*)&sentData, sizeof(sentData));
       // Write to LCD
-      lcd.setCursor(0, 0);
       if (mobileButtonToggle) {
-        lcd.print("Mobile on      ");
+        writeLCD("Mobile on", NULL);
       } else {
-        lcd.print("Mobile off     ");
+        writeLCD("Mobile off", NULL);
       }
-      lcd.setCursor(0, 1);
-      lcd.print("               ");
-      analogChange = curr;
+      analogChange = currentTime;
       allowMobileButton = false;
     }
-    prevMobileButton = curr;
-  } else if (curr - prevMobileButton >= intervalButton) {
+    prevMobileButton = currentTime;
+  } else if (currentTime - prevMobileButton >= intervalButton) {
     allowMobileButton = true;
   }
 
   // Update display and set new thresholds
-  if (curr - prevLCD >= intervalLCD) {
-    prevLCD = curr;
-    currAnalogRead = analogRead(A_PIN);
+  if (currentTime - prevLCD >= intervalLCD) {
+    prevLCD = currentTime;
+    currentAnalogRead = analogRead(A_PIN);
 
     // Detect change in potentiometer
-    if (prevAnalogRead - currAnalogRead < -20
-        || prevAnalogRead - currAnalogRead > 20) {
-      prevAnalogRead = currAnalogRead;
-      analogChange = curr;
+    if (prevAnalogRead - currentAnalogRead < -20
+        || prevAnalogRead - currentAnalogRead > 20) {
+      prevAnalogRead = currentAnalogRead;
+      analogChange = currentTime;
       // Change temp or noise threshold depending on button toggle
       if (buttonToggle) {
         // Print new threshold to serial and LCD
         // Division by 100 to get range of 10
-        temperatureThreshold = 20.0 + (currAnalogRead / 100);
+        temperatureThreshold = 20.0 + (currentAnalogRead / 100);
         Serial.println(temperatureThreshold);
-        lcd.setCursor(0, 0);
-        lcd.print("Temp Threshold  ");
-        lcd.setCursor(0, 1);
-        lcd.print(temperatureThreshold);
+        writeLCD("Temp Threshold", temperatureThreshold);
       } else {
         // Division by 50 to get range of 20
-        noiseThreshold = 63.0 + (currAnalogRead / 50);
+        noiseThreshold = 63.0 + (currentAnalogRead / 50);
         Serial.println(noiseThreshold);
-        lcd.setCursor(0, 0);
-        lcd.print("Noise Threshold ");
-        lcd.setCursor(0, 1);
-        lcd.print(noiseThreshold);
+        writeLCD("Noise Threshold", noiseThreshold);
       }
     }
     // Display current readings on display
-    else if (curr - analogChange >= intervalChange) {
+    else if (currentTime - analogChange >= intervalChange) {
       if (buttonToggle) {
-        lcd.setCursor(0, 0);
-        lcd.print("Current Temp    ");
-        lcd.setCursor(0, 1);
-        lcd.print(receivedData.temperature);
+        writeLCD("Current Temp", receivedData.temperature);
       } else {
-        lcd.setCursor(0, 0);
-        lcd.print("Current Noise   ");
-        lcd.setCursor(0, 1);
-        lcd.print(receivedData.noiseLevel);
+        writeLCD("Current Noise", receivedData.noiseLevel);
       }
     }
   }
