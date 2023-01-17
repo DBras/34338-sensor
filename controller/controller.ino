@@ -1,5 +1,21 @@
 /*
+  34338 Baby Monitor Controller
 
+  This acts as a controller unit for the baby monitor system.
+
+  This runs on an ESP-8266. It expects 2 LEDs, 2 buttons, one potentiometer,
+  and one LCD screen of size 16x2. It is also necessary to have an open WiFi-hotspot.
+  The credentials for this can be changed below.
+  Data is received from another ESP running the sensor modules. To send on/off signals
+  for the mobile connected to the sensor-ESP, the MAC-address of this ESP must be changed
+  below.
+  When data is received, it is uploaded to a ThingSpeak channel with ID and APIKey
+  which can be changed below.
+
+  Modified 17 Jan 2023
+
+  GitHub URL:
+  https://github.com/DBras/34338-sensor/
 */
 
 #include <ESP8266WiFi.h>
@@ -71,15 +87,15 @@ bool buzz = false;
 //Write to LCD with float
 void writeLCD(String topLine, float bottomLine){
   lcd.setCursor(0, 1);
-  if (bottomLine) {
+  if (bottomLine != NULL) {
     lcd.print(bottomLine);
   } else {
     lcd.clear();
   }
-  lcd.setCursor(0, 0);
   for (int i = topLine.length(); i <= 16; i++) {
     topLine += " ";
   }
+  lcd.setCursor(0, 0);
   lcd.print(topLine);
 }
 
