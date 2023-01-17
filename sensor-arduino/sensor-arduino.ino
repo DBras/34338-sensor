@@ -1,5 +1,15 @@
 /*
+  34338 Baby Monitor Controller
+
+  This acts as a controller for the step motor in the sensor unit
+
+  This runs on an Arduino UNO, it expects 4 digital pins for a step motor and an analog pin
+  to read from the sensor-ESP
  
+  Modified 17 Jan 2023
+
+  GitHub URL:
+  https://github.com/DBras/34338-sensor/ 
 */
 
 void setup() {

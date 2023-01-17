@@ -1,5 +1,19 @@
 /*
+  34338 Baby Monitor Controller
 
+  This runs on an ESP-8266. It expects 1 analog sound sensor, 1 digital hybrid
+  temperature and humidity sensor and a pin connected to the motor controller,
+  which is an Arduino UNO.
+  It is also necessary to have an open WiFi-hotspot.
+  The credentials for this can be changed below.
+  Data is received from another ESP running the monitor controller. To send float values
+  for the controller module, the MAC-address of this ESP must be changed
+  below.  
+
+  Modified 17 Jan 2023
+
+  GitHub URL:
+  https://github.com/DBras/34338-sensor/
 */
 
 #include <espnow.h>
