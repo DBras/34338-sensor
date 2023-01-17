@@ -1,9 +1,20 @@
-# IoT Project
+# 34338 IoT Project
 
-## Diagram
+## Diagrams
 
-![Fritzing Diagram of controller unit](/img/fritzing_diagram.png)
+### Controller unit
 
+<p align="center">
+  <img src="/img/controller_fritzing.png" width="600"/>
+</p>
+
+### Sensor unit
+
+<p align="center">
+  <img src="/img/sensor_fritzing.png" width="600"/>
+</p>
+
+  
 ## ESP MAC Addresses
 
 Daniel ESP MAC: 84:F3:EB:31:D0:74
