@@ -1,3 +1,7 @@
+/*
+
+*/
+
 #include <ESP8266WiFi.h>
 #include <ThingSpeak.h>
 #include <LiquidCrystal_I2C.h>
@@ -163,6 +167,7 @@ void loop() {
   // Time tracking
   currentTime = millis();
 
+  // Buzzer time controller
   if (buzz) {
     if (currentTime - buzzerStartTime <= buzzerTimer) {
       digitalWrite(BUZZER_PIN, HIGH);
